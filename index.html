@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YCG 수련회 수강신청</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      background-color: #ffffff;
+      background-image: url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='500' height='500'><circle cx='70' cy='100' r='18' fill='%235DC05C' stroke='%231A1A1A' stroke-width='2'/><circle cx='380' cy='360' r='18' fill='%235DC05C' stroke='%231A1A1A' stroke-width='2'/><polygon points='280,38 306,80 254,80' fill='%23F25C5C' stroke='%231A1A1A' stroke-width='2'/><polygon points='100,288 126,330 74,330' fill='%23F25C5C' stroke='%231A1A1A' stroke-width='2'/><polygon points='420,138 442,160 420,182 398,160' fill='%23F5C842' stroke='%231A1A1A' stroke-width='2'/><polygon points='200,398 222,420 200,442 178,420' fill='%23F5C842' stroke='%231A1A1A' stroke-width='2'/></svg>");
+      background-size: 500px 500px;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 24px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+      border: 3px solid #1A1A1A;
+    }
+    .logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .logo .emoji { font-size: 48px; margin-bottom: 12px; }
+    .logo h1 { font-size: 22px; color: #1A1A1A; font-weight: 900; }
+    .logo p { color: #FF8F00; font-size: 14px; margin-top: 6px; font-weight: 700; }
+    .logo::after {
+      content: '★  ★  ★';
+      display: block;
+      color: #FFD94A;
+      font-size: 13px;
+      letter-spacing: 4px;
+      margin-top: 10px;
+    }
+    .tabs {
+      display: flex;
+      background: #f4f4f6;
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 28px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #999;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: white;
+      color: #FF4444;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .form-section { display: none; }
+    .form-section.active { display: block; }
+    .form-group { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 13px;
+      color: #555;
+      margin-bottom: 7px;
+      font-weight: 600;
+    }
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 13px 16px;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+      color: #222;
+      background: white;
+    }
+    select:focus, input:focus { border-color: #FF4444; }
+    .btn {
+      width: 100%;
+      padding: 15px;
+      background: #FF4444;
+      color: white;
+      border: 2px solid #1A1A1A;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.1s;
+      font-family: inherit;
+      letter-spacing: -0.3px;
+    }
+    .btn:hover { opacity: 0.92; }
+    .btn:active { transform: scale(0.98); }
+    .btn-outline {
+      background: #FFD94A;
+      color: #1A1A1A;
+      border: 2px solid #1A1A1A;
+    }
+    .btn-outline:hover { background: #FFCA28; opacity: 1; }
+    .error {
+      color: #e53e3e;
+      font-size: 13px;
+      margin-top: 10px;
+      text-align: center;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="emoji">🏕️</div>
+      <h1>클래스 수강신청</h1>
+      <p>2026 잠실교회 청년1부 여름수련회</p>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('student')">학생</div>
+      <div class="tab" onclick="switchTab('admin')">관리자</div>
+    </div>
+
+    <!-- 학생 로그인 -->
+    <div class="form-section active" id="student-form">
+      <div class="form-group">
+        <label>기수</label>
+        <select id="student-grade">
+          <option value="">기수를 선택하세요</option>
+          <option value="41기">41기</option>
+          <option value="42기">42기</option>
+          <option value="43기">43기</option>
+          <option value="44기">44기</option>
+          <option value="45기">45기</option>
+          <option value="46기">46기</option>
+          <option value="47기">47기</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>이름</label>
+        <input type="text" id="student-name" placeholder="이름을 입력하세요">
+      </div>
+      <button class="btn" onclick="studentLogin('register')">수강신청</button>
+      <button class="btn btn-outline" onclick="studentLogin('schedule')">수강신청 내역 확인</button>
+      <p class="error" id="student-error"></p>
+    </div>
+
+    <!-- 관리자 로그인 -->
+    <div class="form-section" id="admin-form">
+      <div class="form-group">
+        <label>관리자 비밀번호</label>
+        <input type="password" id="admin-password" placeholder="비밀번호를 입력하세요">
+      </div>
+      <button class="btn" onclick="adminLogin()">관리자 입장</button>
+      <p class="error" id="admin-error"></p>
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (tab === 'student' && i === 0) || (tab === 'admin' && i === 1));
+      });
+      document.getElementById('student-form').classList.toggle('active', tab === 'student');
+      document.getElementById('admin-form').classList.toggle('active', tab === 'admin');
+    }
+
+    function studentLogin(dest) {
+      const grade = document.getElementById('student-grade').value;
+      const name = document.getElementById('student-name').value.trim();
+      const error = document.getElementById('student-error');
+
+      if (!grade) { error.textContent = '기수를 선택해주세요.'; return; }
+      if (!name) { error.textContent = '이름을 입력해주세요.'; return; }
+
+      error.textContent = '';
+      sessionStorage.setItem('grade', grade);
+      sessionStorage.setItem('name', name);
+      sessionStorage.setItem('userId', grade + '_' + name);
+      window.location.href = dest === 'schedule' ? 'schedule.html' : 'student.html';
+    }
+
+    function adminLogin() {
+      const pw = document.getElementById('admin-password').value;
+      const error = document.getElementById('admin-error');
+      if (pw === '1225') {
+        sessionStorage.setItem('isAdmin', 'true');
+        window.location.href = 'admin.html';
+      } else {
+        error.textContent = '비밀번호가 틀렸습니다.';
+      }
+    }
+
+    document.getElementById('student-name').addEventListener('keydown', e => {
+      if (e.key === 'Enter') studentLogin();
+    });
+    document.getElementById('admin-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') adminLogin();
+    });
+  </script>
+</body>
+</html>

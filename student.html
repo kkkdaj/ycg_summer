@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수강신청</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      background-color: #ffffff;
+      background-image: url("data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' width='500' height='500' opacity='0.2'><circle cx='70' cy='100' r='18' fill='%235DC05C' stroke='%231A1A1A' stroke-width='2'/><circle cx='380' cy='360' r='18' fill='%235DC05C' stroke='%231A1A1A' stroke-width='2'/><polygon points='280,38 306,80 254,80' fill='%23F25C5C' stroke='%231A1A1A' stroke-width='2'/><polygon points='100,288 126,330 74,330' fill='%23F25C5C' stroke='%231A1A1A' stroke-width='2'/><polygon points='420,138 442,160 420,182 398,160' fill='%23F5C842' stroke='%231A1A1A' stroke-width='2'/><polygon points='200,398 222,420 200,442 178,420' fill='%23F5C842' stroke='%231A1A1A' stroke-width='2'/></svg>");
+      background-size: 500px 500px;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+    header {
+      background: #FFD94A;
+      color: #1A1A1A;
+      padding: 18px 20px 16px;
+      text-align: center;
+      border-bottom: 3px solid #1A1A1A;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆ ★ ☆';
+      position: absolute;
+      bottom: 4px;
+      left: 0; right: 0;
+      font-size: 9px;
+      color: rgba(0,0,0,0.15);
+      letter-spacing: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    header h1 { font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+    .user-row { display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .badge {
+      background: rgba(0,0,0,0.12);
+      padding: 4px 14px; border-radius: 20px;
+      font-size: 13px; font-weight: 700;
+    }
+    .logout-btn {
+      background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.2); color: #1A1A1A;
+      padding: 4px 14px; border-radius: 20px; font-size: 13px;
+      cursor: pointer; font-family: inherit; font-weight: 600;
+    }
+    .content { max-width: 600px; margin: 0 auto; padding: 20px 16px; }
+
+    /* 상태바 */
+    .status-bar {
+      background: white;
+      border-left: 4px solid #FF4444;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      display: none;
+    }
+    .status-bar h3 { font-size: 13px; margin-bottom: 10px; }
+    .status-row { display: flex; gap: 12px; }
+    .status-item {
+      flex: 1; border-radius: 8px;
+      padding: 10px 12px; font-size: 14px;
+    }
+    .status-item .label { font-size: 11px; font-weight: 700; margin-bottom: 4px; opacity: 0.7; }
+    .status-item .value { font-weight: 700; }
+    .status-item.done { background: #FFFDE7; color: #1A1A1A; border: 1px solid #FFD94A; }
+    .status-item.need { background: #fff7ed; color: #e67e22; border: 1px solid #fed7aa; }
+
+    /* 섹션 */
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+      border: 2px solid #1A1A1A;
+    }
+    .section-title { font-size: 17px; font-weight: 900; color: #1A1A1A; margin-bottom: 4px; }
+    .section-sub { font-size: 13px; color: #888; margin-bottom: 16px; }
+
+    /* 강의 카드 */
+    .lecture-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .lecture-card {
+      border: 2px solid #eee;
+      border-radius: 14px;
+      padding: 16px 12px;
+      cursor: pointer;
+      transition: all 0.18s;
+      text-align: center;
+    }
+    .lecture-card:hover:not(.full):not(.blocked) {
+      border-color: #FF4444; background: #f5f7ff; transform: translateY(-1px);
+    }
+    .lecture-card.selected { border-color: #FF4444; background: linear-gradient(135deg, #FF444410, #764ba210); }
+    .lecture-card.saved { border-color: #FFD94A; background: #FFFDE7; border-width: 3px; }
+    .lecture-card.full { opacity: 0.5; cursor: not-allowed; background: #fafafa; }
+    .lecture-card.blocked { opacity: 0.38; cursor: not-allowed; background: #f5f5f5; }
+
+    .lec-name { font-size: 15px; font-weight: 700; color: #222; margin-bottom: 6px; }
+    .lec-count { font-size: 13px; color: #aaa; }
+    .lec-count.warn { color: #e67e22; }
+    .lec-count.over { color: #e53e3e; }
+
+    .tag {
+      display: inline-block; font-size: 11px;
+      padding: 2px 9px; border-radius: 10px;
+      margin-top: 5px; font-weight: 600;
+    }
+    .tag-saved    { background: #FFD94A; color: #1A1A1A; border: 1px solid #1A1A1A; }
+    .tag-selected { background: #FF4444; color: white; }
+    .tag-full     { background: #e53e3e; color: white; }
+    .tag-blocked  { background: #ccc; color: white; }
+
+    /* 교시별 신청 버튼 */
+    .submit-btn {
+      width: 100%; margin-top: 14px; padding: 14px;
+      background: #FF4444;
+      color: white; border: 2px solid #1A1A1A; border-radius: 12px;
+      font-size: 15px; font-weight: 900; cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      font-family: inherit; letter-spacing: -0.3px;
+    }
+    .submit-btn:hover:not(:disabled) { opacity: 0.88; }
+    .submit-btn:active:not(:disabled) { transform: scale(0.97); }
+    .submit-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .submit-btn.done {
+      background: #FFD94A;
+      color: #1A1A1A;
+    }
+
+    .schedule-btn {
+      width: 100%; margin-top: 12px; padding: 11px;
+      background: #FFD94A;
+      color: #1A1A1A; border: 2px solid #1A1A1A; border-radius: 10px;
+      font-size: 14px; font-weight: 900; cursor: pointer;
+      font-family: inherit; transition: opacity 0.2s;
+    }
+    .schedule-btn:hover { opacity: 0.88; }
+
+    /* 토스트 */
+    .toast {
+      position: fixed; bottom: 30px; left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      background: #222; color: white;
+      padding: 12px 24px; border-radius: 25px;
+      font-size: 14px; opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none; white-space: nowrap; z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🏕️ 클래스 수강신청</h1>
+    <div class="user-row">
+      <span class="badge" id="user-display"></span>
+      <button class="logout-btn" onclick="logout()">나가기</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- 신청 현황 -->
+    <div class="status-bar" id="status-bar">
+      <h3 id="status-title">📋 신청 현황</h3>
+      <div class="status-row">
+        <div class="status-item" id="status-p1">
+          <div class="label">1교시</div>
+          <div class="value" id="status-p1-val">-</div>
+        </div>
+        <div class="status-item" id="status-p2">
+          <div class="label">2교시</div>
+          <div class="value" id="status-p2-val">-</div>
+        </div>
+      </div>
+      <button class="schedule-btn" id="schedule-btn" onclick="window.location.href='schedule.html'" style="display:none">
+        📋 내 시간표 확인하기
+      </button>
+    </div>
+
+    <!-- 1교시 -->
+    <div class="section">
+      <div class="section-title">1교시 선택 (16:30~17:10)</div>
+      <div class="section-sub">2교시와 다른 강의를 선택하세요</div>
+      <div class="lecture-grid" id="grid-p1"></div>
+      <button class="submit-btn" id="btn-p1" onclick="submitPeriod(1)" disabled>
+        1교시 신청하기
+      </button>
+    </div>
+
+    <!-- 2교시 -->
+    <div class="section">
+      <div class="section-title">2교시 선택 (17:20~18:00)</div>
+      <div class="section-sub">1교시와 다른 강의를 선택하세요</div>
+      <div class="lecture-grid" id="grid-p2"></div>
+      <button class="submit-btn" id="btn-p2" onclick="submitPeriod(2)" disabled>
+        2교시 신청하기
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    const grade  = sessionStorage.getItem('grade');
+    const name   = sessionStorage.getItem('name');
+    const userId = sessionStorage.getItem('userId');
+    if (!grade || !name) window.location.href = 'index.html';
+
+    document.getElementById('user-display').textContent = grade + ' ' + name;
+
+    firebase.initializeApp({
+      apiKey: "AIzaSyC6fE8kSwj3WirTs3d2Ddh_QZHaaNiEe80",
+      authDomain: "ycg-summer-retreat.firebaseapp.com",
+      projectId: "ycg-summer-retreat",
+      storageBucket: "ycg-summer-retreat.firebasestorage.app",
+      messagingSenderId: "900312562490",
+      appId: "1:900312562490:web:febf7db7ce182d61402e03"
+    });
+    const db = firebase.firestore();
+
+    const LECTURES = ['모델링팩', '피구', '도미노', '전지 그림', '슬라임', '요가/발레'];
+    const MAX = 3;
+
+    // sel: 화면에서 선택된 것 / saved: Firebase에 실제 저장된 것
+    let sel1 = null, sel2 = null;
+    let savedP1 = null, savedP2 = null;
+    let counts = { p1: {}, p2: {} };
+    LECTURES.forEach(l => { counts.p1[l] = 0; counts.p2[l] = 0; });
+
+    function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    function renderAll() {
+      renderGrid('grid-p1', 1);
+      renderGrid('grid-p2', 2);
+      updateButtons();
+      updateStatusBar();
+    }
+
+    function renderGrid(gridId, period) {
+      const grid      = document.getElementById(gridId);
+      const selected  = period === 1 ? sel1   : sel2;
+      const saved     = period === 1 ? savedP1 : savedP2;
+      const savedOther = period === 1 ? savedP2 : savedP1;
+      const pKey      = period === 1 ? 'p1'   : 'p2';
+
+      grid.innerHTML = LECTURES.map(lec => {
+        const count      = counts[pKey][lec] || 0;
+        const isSelected = lec === selected;
+        const isSaved    = lec === saved;
+        const isFull     = count >= MAX && !isSelected;
+        const isBlocked  = lec === savedOther;
+
+        let cls = 'lecture-card';
+        if (isSaved)         cls += ' saved';
+        else if (isSelected) cls += ' selected';
+        else if (isFull)     cls += ' full';
+        else if (isBlocked)  cls += ' blocked';
+
+        let countCls = 'lec-count';
+        if (count >= MAX) countCls += ' over';
+        else if (count >= MAX - 3) countCls += ' warn';
+
+        const canClick = !isFull && !isBlocked;
+        const onclick  = canClick ? `selectLec(${period}, '${lec.replace(/'/g, "\\'")}')` : '';
+
+        let tag = '';
+        if (isSaved)         tag = '<div><span class="tag tag-saved">신청됨 ✓</span></div>';
+        else if (isSelected) tag = '<div><span class="tag tag-selected">선택됨</span></div>';
+        else if (isFull)     tag = '<div><span class="tag tag-full">마감</span></div>';
+        else if (isBlocked)  tag = `<div><span class="tag tag-blocked">${period === 1 ? '2교시' : '1교시'} 신청됨</span></div>`;
+
+        return `
+          <div class="${cls}" onclick="${onclick}">
+            <div class="lec-name">${lec}</div>
+            <div class="${countCls}">${count} / ${MAX}명</div>
+            ${tag}
+          </div>`;
+      }).join('');
+    }
+
+    function selectLec(period, lec) {
+      if (period === 1) sel1 = sel1 === lec ? null : lec;
+      else              sel2 = sel2 === lec ? null : lec;
+      renderAll();
+    }
+
+    function updateButtons() {
+      // 1교시 버튼: 선택됐고 저장된 것과 다를 때 활성화
+      const btn1 = document.getElementById('btn-p1');
+      const btn2 = document.getElementById('btn-p2');
+
+      const p1Changed = sel1 !== null && sel1 !== savedP1;
+      const p2Changed = sel2 !== null && sel2 !== savedP2;
+
+      btn1.disabled = !p1Changed;
+      btn2.disabled = !p2Changed;
+
+      btn1.className = 'submit-btn' + (savedP1 ? ' done' : '');
+      btn2.className = 'submit-btn' + (savedP2 ? ' done' : '');
+
+      btn1.textContent = savedP1 ? '1교시 수정하기' : '1교시 신청하기';
+      btn2.textContent = savedP2 ? '2교시 수정하기' : '2교시 신청하기';
+
+      // 선택 중일 때 버튼 텍스트에 강의명 표시
+      if (p1Changed) btn1.textContent = (savedP1 ? '1교시 수정: ' : '1교시 신청: ') + sel1;
+      if (p2Changed) btn2.textContent = (savedP2 ? '2교시 수정: ' : '2교시 신청: ') + sel2;
+    }
+
+    function updateStatusBar() {
+      const bar = document.getElementById('status-bar');
+      if (!savedP1 && !savedP2) { bar.style.display = 'none'; return; }
+
+      bar.style.display = 'block';
+      const isComplete = savedP1 && savedP2;
+      bar.style.borderLeftColor = isComplete ? '#FF4444' : '#e67e22';
+      document.getElementById('status-title').textContent =
+        isComplete ? '✅ 수강신청 내역' : '⚠️ 신청 미완료';
+
+      const p1Item = document.getElementById('status-p1');
+      const p2Item = document.getElementById('status-p2');
+      const p1Val  = document.getElementById('status-p1-val');
+      const p2Val  = document.getElementById('status-p2-val');
+
+      if (savedP1) { p1Item.className = 'status-item done'; p1Val.textContent = savedP1; }
+      else         { p1Item.className = 'status-item need'; p1Val.textContent = '선택 필요'; }
+
+      if (savedP2) { p2Item.className = 'status-item done'; p2Val.textContent = savedP2; }
+      else         { p2Item.className = 'status-item need'; p2Val.textContent = '선택 필요'; }
+
+      document.getElementById('schedule-btn').style.display = isComplete ? 'block' : 'none';
+    }
+
+    async function submitPeriod(period) {
+      const sel        = period === 1 ? sel1   : sel2;
+      const savedOther = period === 1 ? savedP2 : savedP1;
+      const btn        = document.getElementById('btn-p' + period);
+      const pKey       = 'p' + period;
+
+      if (!sel) return;
+
+      if (savedOther && sel === savedOther) {
+        showToast(`이미 ${period === 1 ? '2' : '1'}교시에 신청한 강의예요!`);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = '처리 중...';
+
+      const regRef = db.collection('registrations').doc(userId);
+      const cntRef = db.collection('meta').doc('counts');
+
+      try {
+        await db.runTransaction(async (tx) => {
+          const regDoc = await tx.get(regRef);
+          const cntDoc = await tx.get(cntRef);
+
+          const prevSel        = regDoc.exists ? (regDoc.data()['period' + period] || null) : null;
+          const cntData        = cntDoc.exists ? cntDoc.data() : {};
+          const currentCount   = ((cntData[pKey] || {})[sel]) || 0;
+          const countWithoutMe = prevSel === sel ? currentCount - 1 : currentCount;
+
+          if (countWithoutMe >= MAX) throw new Error('FULL');
+
+          const newCnts = cntDoc.exists ? { ...cntDoc.data() } : {};
+          if (!newCnts[pKey]) newCnts[pKey] = {};
+
+          if (prevSel && prevSel !== sel) {
+            newCnts[pKey][prevSel] = Math.max(0, (newCnts[pKey][prevSel] || 0) - 1);
+          }
+          if (prevSel !== sel) {
+            newCnts[pKey][sel] = (newCnts[pKey][sel] || 0) + 1;
+          }
+
+          tx.set(cntRef, newCnts, { merge: true });
+          tx.set(regRef, {
+            기수: grade, 이름: name,
+            ['period' + period]: sel,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        });
+
+        if (period === 1) savedP1 = sel;
+        else              savedP2 = sel;
+
+        showToast(`${period}교시 신청 완료! 🎉`);
+      } catch (e) {
+        if (e.message === 'FULL') {
+          showToast(`${sel} ${period}교시가 방금 마감됐어요!`);
+        } else {
+          showToast('오류가 발생했어요. 다시 시도해주세요.');
+          console.error(e);
+        }
+      } finally {
+        renderAll();
+      }
+    }
+
+    // 기존 신청 불러오기
+    async function loadMine() {
+      const doc = await db.collection('registrations').doc(userId).get();
+      if (doc.exists) {
+        const d = doc.data();
+        sel1 = savedP1 = d.period1 || null;
+        sel2 = savedP2 = d.period2 || null;
+      }
+    }
+
+    // 실시간 인원 수 리스닝
+    function listenCounts() {
+      db.collection('registrations').onSnapshot(snap => {
+        LECTURES.forEach(l => { counts.p1[l] = 0; counts.p2[l] = 0; });
+        snap.forEach(doc => {
+          const d = doc.data();
+          if (d.period1 && counts.p1[d.period1] !== undefined) counts.p1[d.period1]++;
+          if (d.period2 && counts.p2[d.period2] !== undefined) counts.p2[d.period2]++;
+        });
+        renderAll();
+      });
+    }
+
+    renderAll();
+    loadMine().then(listenCounts);
+  </script>
+</body>
+</html>
