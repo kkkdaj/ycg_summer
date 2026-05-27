@@ -340,7 +340,7 @@
       if (savedP2) { p2Item.className = 'status-item done'; p2Val.textContent = savedP2; }
       else         { p2Item.className = 'status-item need'; p2Val.textContent = '선택 필요'; }
 
-      document.getElementById('schedule-btn').style.display = isComplete ? 'block' : 'none';
+      document.getElementById('schedule-btn').style.display = (savedP1 || savedP2) ? 'block' : 'none';
     }
 
     async function submitPeriod(period) {
