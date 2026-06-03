@@ -97,7 +97,7 @@
     .td-time   { font-size: 13px; color: #555; font-weight: 600; white-space: nowrap; }
     .td-lec-name { font-size: 17px; font-weight: 800; color: #222; }
     .td-lec-name.empty { font-size: 14px; color: #ccc; font-weight: 500; }
-    .td-room { font-size: 12px; color: #aaa; margin-top: 4px; }
+    .td-room { font-size: 14px; color: #555; font-weight: 600; }
 
     /* 미완료 안내 */
     .incomplete-notice {
@@ -139,6 +139,8 @@
       color: #aaa;
       font-size: 15px;
     }
+    .btn-primary:disabled { background: #ddd; color: #999; border-color: #ddd; cursor: default; font-size: 13px; }
+    .btn-primary:disabled:hover { opacity: 1; }
   </style>
 </head>
 <body>
@@ -165,24 +167,21 @@
             <th>교시</th>
             <th>시간</th>
             <th>강의</th>
+            <th>장소</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><div class="td-period">1교시</div></td>
-            <td><div class="td-time">16:30 ~ 17:10</div></td>
-            <td>
-              <div class="td-lec-name" id="lec1">-</div>
-              <div class="td-room" id="room1"></div>
-            </td>
+            <td><div class="td-time">16:50 ~ 17:30</div></td>
+            <td><div class="td-lec-name" id="lec1">-</div></td>
+            <td><div class="td-room" id="room1"></div></td>
           </tr>
           <tr>
             <td><div class="td-period">2교시</div></td>
-            <td><div class="td-time">17:20 ~ 18:00</div></td>
-            <td>
-              <div class="td-lec-name" id="lec2">-</div>
-              <div class="td-room" id="room2"></div>
-            </td>
+            <td><div class="td-time">17:40 ~ 18:20</div></td>
+            <td><div class="td-lec-name" id="lec2">-</div></td>
+            <td><div class="td-room" id="room2"></div></td>
           </tr>
         </tbody>
       </table>
@@ -192,7 +191,7 @@
       </div>
 
       <div class="actions">
-        <button class="btn btn-primary" onclick="goRegister()">수강신청 하러 가기</button>
+        <button class="btn btn-primary" id="register-btn" onclick="goRegister()">수강신청 하러 가기</button>
         <button class="btn btn-outline" onclick="goBack()">처음으로</button>
       </div>
     </div>
@@ -220,24 +219,37 @@
 
     const ICONS = {
       '모델링팩': '🧸',
-      '피구': '🏐',
+      '레고 피규어 만들기': '🏐',
       '도미노': '🁣',
       '전지 그림': '🎨',
       '슬라임': '🟢',
-      '요가/발레': '🧘'
+      '요가/발레': '🧘',
+      '과자집 만들기': '🍪'
     };
 
     const ROOMS = {
       '모델링팩': '101호',
-      '피구': '102호',
+      '레고 피규어 만들기': '102호',
       '도미노': '103호',
       '전지 그림': '104호',
       '슬라임': '105호',
-      '요가/발레': '106호'
+      '요가/발레': '106호',
+      '과자집 만들기': '107호'
     };
 
-    function goBack()     { sessionStorage.clear(); window.location.href = 'index.html'; }
-    function goRegister() { window.location.href = 'student.html'; }
+    function goBack() { sessionStorage.clear(); window.location.href = 'index.html'; }
+
+    async function goRegister() {
+      try {
+        const doc = await db.collection('meta').doc('settings').get();
+        const isOpen = doc.exists ? doc.data().isOpen !== false : true;
+        if (!isOpen) {
+          document.getElementById('reg-closed-msg').style.display = 'block';
+          return;
+        }
+      } catch (e) { console.error(e); }
+      window.location.href = 'student.html';
+    }
 
     async function load() {
       try {
@@ -282,6 +294,13 @@
         document.getElementById('main').style.display = 'block';
       }
     }
+
+    db.collection('meta').doc('settings').onSnapshot(doc => {
+      const isOpen = doc.exists ? doc.data().isOpen !== false : true;
+      const btn = document.getElementById('register-btn');
+      btn.textContent = isOpen ? '수강신청 하러 가기' : '지금은 수강신청 시간이 아닙니다.';
+      btn.disabled = !isOpen;
+    });
 
     load();
   </script>

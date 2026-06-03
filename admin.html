@@ -262,6 +262,31 @@
     }
     .btn-save { background: #FF4444; color: white; border: 2px solid #1A1A1A; }
     .btn-cancel { background: #f0f0f2; color: #555; }
+
+    .reg-bar {
+      background: #f9f9f9;
+      border-bottom: 2px solid #eee;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .reg-status { font-size: 14px; font-weight: 700; }
+    .reg-status.open { color: #38a169; }
+    .reg-status.closed { color: #e53e3e; }
+    .reg-toggle-btn {
+      padding: 7px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      border: 2px solid #1A1A1A;
+      transition: opacity 0.2s;
+    }
+    .reg-toggle-btn:hover { opacity: 0.85; }
+    .reg-toggle-btn.do-close { background: #e53e3e; color: white; }
+    .reg-toggle-btn.do-open  { background: #38a169; color: white; }
   </style>
 </head>
 <body>
@@ -269,6 +294,11 @@
     <h1>🛠️ 관리자 대시보드</h1>
     <button class="logout-btn" onclick="logout()">나가기</button>
   </header>
+
+  <div class="reg-bar">
+    <span class="reg-status" id="reg-status">확인 중...</span>
+    <button class="reg-toggle-btn" id="reg-toggle-btn" onclick="toggleRegistration()">...</button>
+  </div>
 
   <div class="tab-bar">
     <div class="tab-item active" onclick="switchTab('overview')">현황 요약</div>
@@ -279,9 +309,9 @@
   <div class="content">
     <!-- 현황 요약 -->
     <div class="tab-panel active" id="panel-overview">
-      <div class="period-title">1교시 (16:30~17:10)</div>
+      <div class="period-title">1교시 (16:50~17:30)</div>
       <div class="overview-grid" id="ov-p1"></div>
-      <div class="period-title">2교시 (17:20~18:00)</div>
+      <div class="period-title">2교시 (17:40~18:20)</div>
       <div class="overview-grid" id="ov-p2"></div>
     </div>
 
@@ -299,7 +329,7 @@
         <table>
           <thead>
             <tr>
-              <th>기수</th><th>이름</th><th>1교시</th><th>2교시</th><th>관리</th>
+              <th>기수</th><th>이름</th><th>1교시 (16:50~17:30)</th><th>2교시 (17:40~18:20)</th><th>관리</th>
             </tr>
           </thead>
           <tbody id="student-tbody"></tbody>
@@ -349,10 +379,10 @@
     });
     const db = firebase.firestore();
 
-    const LECTURES = ['모델링팩', '피구', '도미노', '전지 그림', '슬라임', '요가/발레'];
+    const LECTURES = ['모델링팩', '레고 피규어 만들기', '도미노', '전지 그림', '슬라임', '요가/발레', '과자집 만들기'];
     const ROOMS = {
-      '모델링팩': '101호', '피구': '102호', '도미노': '103호',
-      '전지 그림': '104호', '슬라임': '105호', '요가/발레': '106호'
+      '모델링팩': '101호', '레고 피규어 만들기': '102호', '도미노': '103호',
+      '전지 그림': '104호', '슬라임': '105호', '요가/발레': '106호', '과자집 만들기': '107호'
     };
     const MAX = 3;
     let allRegs = [];
@@ -453,14 +483,14 @@
       document.getElementById('lec-detail').innerHTML = `
         <div class="period-box">
           <div class="period-box-header">
-            1교시 (16:30~17:10) · ${ROOMS[selLec]}
+            1교시 (16:50~17:30) · ${ROOMS[selLec]}
             <span class="count-badge ${p1Full ? 'full' : ''}">${p1.length} / ${MAX}</span>
           </div>
           ${makeList(p1)}
         </div>
         <div class="period-box">
           <div class="period-box-header">
-            2교시 (17:20~18:00) · ${ROOMS[selLec]}
+            2교시 (17:40~18:20) · ${ROOMS[selLec]}
             <span class="count-badge ${p2Full ? 'full' : ''}">${p2.length} / ${MAX}</span>
           </div>
           ${makeList(p2)}
@@ -569,6 +599,35 @@
       renderStudents();
       renderLec();
     });
+
+    /* ── 수강신청 열기/닫기 ── */
+    let isRegOpen = true;
+
+    db.collection('meta').doc('settings').onSnapshot(doc => {
+      isRegOpen = doc.exists ? doc.data().isOpen !== false : true;
+      const statusEl = document.getElementById('reg-status');
+      const btnEl    = document.getElementById('reg-toggle-btn');
+      if (isRegOpen) {
+        statusEl.textContent = '🟢 수강신청 열림';
+        statusEl.className   = 'reg-status open';
+        btnEl.textContent    = '수강신청 닫기';
+        btnEl.className      = 'reg-toggle-btn do-close';
+      } else {
+        statusEl.textContent = '🔴 수강신청 닫힘';
+        statusEl.className   = 'reg-status closed';
+        btnEl.textContent    = '수강신청 열기';
+        btnEl.className      = 'reg-toggle-btn do-open';
+      }
+    });
+
+    async function toggleRegistration() {
+      try {
+        await db.collection('meta').doc('settings').set({ isOpen: !isRegOpen }, { merge: true });
+      } catch (e) {
+        alert('오류가 발생했어요.');
+        console.error(e);
+      }
+    }
 
     // 모달 외부 클릭 시 닫기
     document.getElementById('modal-overlay').addEventListener('click', function(e) {

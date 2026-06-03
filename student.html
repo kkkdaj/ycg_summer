@@ -183,7 +183,7 @@
 
     <!-- 1교시 -->
     <div class="section">
-      <div class="section-title">1교시 선택 (16:30~17:10)</div>
+      <div class="section-title">1교시 선택 (16:50~17:30)</div>
       <div class="section-sub">2교시와 다른 강의를 선택하세요</div>
       <div class="lecture-grid" id="grid-p1"></div>
       <button class="submit-btn" id="btn-p1" onclick="submitPeriod(1)" disabled>
@@ -193,7 +193,7 @@
 
     <!-- 2교시 -->
     <div class="section">
-      <div class="section-title">2교시 선택 (17:20~18:00)</div>
+      <div class="section-title">2교시 선택 (17:40~18:20)</div>
       <div class="section-sub">1교시와 다른 강의를 선택하세요</div>
       <div class="lecture-grid" id="grid-p2"></div>
       <button class="submit-btn" id="btn-p2" onclick="submitPeriod(2)" disabled>
@@ -224,7 +224,7 @@
     });
     const db = firebase.firestore();
 
-    const LECTURES = ['모델링팩', '피구', '도미노', '전지 그림', '슬라임', '요가/발레'];
+    const LECTURES = ['모델링팩', '레고 피규어 만들기', '도미노', '전지 그림', '슬라임', '요가/발레', '과자집 만들기'];
     const MAX = 3;
 
     // sel: 화면에서 선택된 것 / saved: Firebase에 실제 저장된 것
@@ -430,6 +430,11 @@
         renderAll();
       });
     }
+
+    db.collection('meta').doc('settings').get().then(doc => {
+      const isOpen = doc.exists ? doc.data().isOpen !== false : true;
+      if (!isOpen) window.location.href = 'index.html';
+    });
 
     renderAll();
     loadMine().then(listenCounts);
