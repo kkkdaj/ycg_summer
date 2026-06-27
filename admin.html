@@ -287,6 +287,67 @@
     .reg-toggle-btn:hover { opacity: 0.85; }
     .reg-toggle-btn.do-close { background: #e53e3e; color: white; }
     .reg-toggle-btn.do-open  { background: #38a169; color: white; }
+
+    /* ── 강의 설정 탭 ── */
+    .settings-warn {
+      background: #fff7ed; border: 1px solid #fed7aa;
+      border-radius: 10px; padding: 10px 14px;
+      font-size: 13px; color: #c2410c; margin-bottom: 14px;
+    }
+    .settings-col-header {
+      display: grid; grid-template-columns: 1fr 1fr 72px 36px;
+      gap: 10px; padding: 0 4px; margin-bottom: 6px;
+    }
+    .settings-col-header span {
+      font-size: 11px; font-weight: 700; color: #aaa;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .settings-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .setting-row {
+      background: white; border-radius: 10px; padding: 10px 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      display: grid; grid-template-columns: 1fr 1fr 72px 36px;
+      gap: 10px; align-items: center;
+    }
+    .setting-row input {
+      padding: 7px 10px; border: 2px solid #eee; border-radius: 8px;
+      font-size: 13px; outline: none; font-family: inherit;
+      width: 100%; transition: border-color 0.2s;
+    }
+    .setting-row input:focus { border-color: #FF4444; }
+    .setting-row input[type="number"] { text-align: center; }
+    .setting-del-btn {
+      background: #feb2b2; color: #c53030; border: none;
+      padding: 6px; border-radius: 8px; font-size: 13px;
+      cursor: pointer; font-family: inherit; font-weight: 700;
+      width: 100%; line-height: 1;
+    }
+    .setting-del-btn:hover { background: #fc8181; }
+    .settings-actions { display: flex; gap: 10px; }
+    .btn-add-lec {
+      flex: 1; padding: 11px; background: white;
+      border: 2px dashed #ccc; border-radius: 10px;
+      font-size: 14px; cursor: pointer; font-family: inherit;
+      font-weight: 600; color: #999; transition: all 0.15s;
+    }
+    .btn-add-lec:hover { border-color: #FF4444; color: #FF4444; }
+    .btn-save-settings {
+      flex: 1; padding: 11px; background: #FF4444;
+      border: 2px solid #1A1A1A; border-radius: 10px;
+      font-size: 14px; cursor: pointer; font-family: inherit;
+      font-weight: 700; color: white; transition: opacity 0.15s;
+    }
+    .btn-save-settings:hover { opacity: 0.88; }
+    .btn-save-settings:disabled { background: #ddd; border-color: #ddd; color: #999; cursor: not-allowed; opacity: 1; }
+    .btn-add-lec:disabled { opacity: 0.4; cursor: not-allowed; }
+    .setting-del-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .setting-row input:disabled { background: #f5f5f5; color: #bbb; cursor: not-allowed; }
+    .settings-lock-notice {
+      background: #fff0f0; border: 1px solid #fca5a5;
+      border-radius: 10px; padding: 12px 14px;
+      font-size: 13px; color: #dc2626; font-weight: 700;
+      margin-bottom: 14px;
+    }
   </style>
 </head>
 <body>
@@ -304,6 +365,7 @@
     <div class="tab-item active" onclick="switchTab('overview')">현황 요약</div>
     <div class="tab-item" onclick="switchTab('students')">전체 학생</div>
     <div class="tab-item" onclick="switchTab('lectures')">강의별 목록</div>
+    <div class="tab-item" onclick="switchTab('settings')">강의 설정</div>
   </div>
 
   <div class="content">
@@ -342,6 +404,20 @@
       <div class="lec-filter" id="lec-filter"></div>
       <div class="period-cols" id="lec-detail"></div>
     </div>
+
+    <!-- 강의 설정 -->
+    <div class="tab-panel" id="panel-settings">
+      <div class="settings-warn">⚠️ 강의 이름 변경 시, 기존 신청 데이터와 불일치 발생 가능.<br>수강 신청 전에만 수정 가능!</div>
+      <div class="settings-lock-notice" id="settings-lock-notice" style="display:none">🔒 현재 수강신청 진행 중으로 수정이 불가능합니다.</div>
+      <div class="settings-col-header">
+        <span>강의 이름</span><span>장소</span><span>정원</span><span></span>
+      </div>
+      <div class="settings-list" id="settings-list"></div>
+      <div class="settings-actions">
+        <button class="btn-add-lec" onclick="addLecture()">+ 강의 추가</button>
+        <button class="btn-save-settings" onclick="saveSettings()">저장하기</button>
+      </div>
+    </div>
   </div>
 
   <!-- 수정 모달 -->
@@ -379,15 +455,23 @@
     });
     const db = firebase.firestore();
 
-    const LECTURES = ['모델링팩', '레고 피규어 만들기', '도미노', '전지 그림', '슬라임', '덤벼라 중성마녀', '과자집 만들기'];
-    const ROOMS = {
-      '모델링팩': '101호', '레고 피규어 만들기': '102호', '도미노': '탁구대, 당구대',
-      '전지 그림': '104호', '슬라임': '105호', '덤벼라 중성마녀': '예배당', '과자집 만들기': '107호'
-    };
-    const MAX = 3;
+    const DEFAULT_CONFIG = [
+      { name: '모델링팩',          room: 'CL101',         max: 3 },
+      { name: '레고 피규어 만들기', room: 'CL102',         max: 3 },
+      { name: '도미노',            room: '탁구대, 당구대', max: 3 },
+      { name: '전지 그림',         room: 'CL103',         max: 3 },
+      { name: '슬라임',            room: 'CL105',         max: 3 },
+      { name: '덤벼라 중성마녀',    room: '예배당',         max: 3 },
+      { name: '과자집 만들기',      room: 'CL106',         max: 3 }
+    ];
+    let lectureConfig = [...DEFAULT_CONFIG];
+    let LECTURES = lectureConfig.map(l => l.name);
+    let ROOMS    = Object.fromEntries(lectureConfig.map(l => [l.name, l.room]));
+    function getLecMax(name) { return (lectureConfig.find(l => l.name === name) || {}).max || 3; }
+
     let allRegs = [];
-    let selLec = LECTURES[0];
-    let editId = null;
+    let selLec  = LECTURES[0];
+    let editId  = null;
 
     function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
 
@@ -417,14 +501,15 @@
       ['p1', 'p2'].forEach(p => {
         document.getElementById('ov-' + p).innerHTML = LECTURES.map(lec => {
           const n = c[p][lec] || 0;
-          const cls = n >= MAX ? 'ov-card full' : n >= MAX - 3 ? 'ov-card warn' : 'ov-card';
+          const m   = getLecMax(lec);
+          const cls = n >= m ? 'ov-card full' : n >= m - 1 ? 'ov-card warn' : 'ov-card';
           const period = p === 'p1' ? 1 : 2;
           return `
             <div class="${cls}" onclick="switchTab('lectures');setLec('${lec}')">
               <div class="ov-lec">${lec}</div>
               <div class="ov-room">(${ROOMS[lec]})</div>
               <div class="ov-num">${n}</div>
-              <div class="ov-max">/ ${MAX}명</div>
+              <div class="ov-max">/ ${m}명</div>
             </div>`;
         }).join('');
       });
@@ -477,21 +562,22 @@
           </div>`).join('');
       }
 
-      const p1Full = p1.length >= MAX;
-      const p2Full = p2.length >= MAX;
+      const m = getLecMax(selLec);
+      const p1Full = p1.length >= m;
+      const p2Full = p2.length >= m;
 
       document.getElementById('lec-detail').innerHTML = `
         <div class="period-box">
           <div class="period-box-header">
             1교시 (16:50~17:30) · ${ROOMS[selLec]}
-            <span class="count-badge ${p1Full ? 'full' : ''}">${p1.length} / ${MAX}</span>
+            <span class="count-badge ${p1Full ? 'full' : ''}">${p1.length} / ${m}</span>
           </div>
           ${makeList(p1)}
         </div>
         <div class="period-box">
           <div class="period-box-header">
             2교시 (17:40~18:20) · ${ROOMS[selLec]}
-            <span class="count-badge ${p2Full ? 'full' : ''}">${p2.length} / ${MAX}</span>
+            <span class="count-badge ${p2Full ? 'full' : ''}">${p2.length} / ${m}</span>
           </div>
           ${makeList(p2)}
         </div>`;
@@ -592,33 +678,71 @@
       }
     }
 
-    /* ── 실시간 리스너 ── */
-    db.collection('registrations').onSnapshot(snap => {
-      allRegs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      renderOverview();
-      renderStudents();
-      renderLec();
-    });
+    /* ── 강의 설정 ── */
+    function renderSettings() {
+      document.getElementById('settings-list').innerHTML = lectureConfig.map((l, i) => `
+        <div class="setting-row">
+          <input type="text"   id="s-name-${i}" value="${l.name.replace(/"/g, '&quot;')}" placeholder="강의 이름">
+          <input type="text"   id="s-room-${i}" value="${l.room.replace(/"/g, '&quot;')}" placeholder="장소">
+          <input type="number" id="s-max-${i}"  value="${l.max}" min="1" max="999">
+          <button class="setting-del-btn" onclick="removeLecture(${i})">✕</button>
+        </div>`).join('');
+      updateSettingsLock();
+    }
+
+    function addLecture() {
+      if (isRegOpen) return;
+      lectureConfig = [...lectureConfig, { name: '', room: '', max: 3 }];
+      renderSettings();
+    }
+
+    function removeLecture(i) {
+      if (isRegOpen) return;
+      if (lectureConfig.length <= 1) { alert('강의는 최소 1개 이상이어야 해요.'); return; }
+      lectureConfig = lectureConfig.filter((_, idx) => idx !== i);
+      renderSettings();
+    }
+
+    async function saveSettings() {
+      if (isRegOpen) return;
+      const newConfig = lectureConfig.map((_, i) => ({
+        name: document.getElementById(`s-name-${i}`).value.trim(),
+        room: document.getElementById(`s-room-${i}`).value.trim(),
+        max:  parseInt(document.getElementById(`s-max-${i}`).value) || 3
+      }));
+      if (newConfig.some(l => !l.name)) { alert('강의 이름을 모두 입력해주세요.'); return; }
+      const names = newConfig.map(l => l.name);
+      if (new Set(names).size !== names.length) { alert('강의 이름이 중복돼요.'); return; }
+      try {
+        await db.collection('meta').doc('lectures').set({ list: newConfig });
+        lectureConfig = newConfig;
+        LECTURES = lectureConfig.map(l => l.name);
+        ROOMS    = Object.fromEntries(lectureConfig.map(l => [l.name, l.room]));
+        selLec   = LECTURES[0];
+        alert('저장됐어요! ✅');
+        renderSettings();
+      } catch (e) {
+        alert('저장 중 오류가 발생했어요.');
+        console.error(e);
+      }
+    }
+
+    function updateSettingsLock() {
+      const notice  = document.getElementById('settings-lock-notice');
+      if (!notice) return;
+      const inputs  = document.querySelectorAll('#settings-list input');
+      const delBtns = document.querySelectorAll('#settings-list .setting-del-btn');
+      const addBtn  = document.querySelector('.btn-add-lec');
+      const saveBtn = document.querySelector('.btn-save-settings');
+      notice.style.display = isRegOpen ? 'block' : 'none';
+      inputs.forEach(el => el.disabled = isRegOpen);
+      delBtns.forEach(el => el.disabled = isRegOpen);
+      if (addBtn)  addBtn.disabled  = isRegOpen;
+      if (saveBtn) saveBtn.disabled = isRegOpen;
+    }
 
     /* ── 수강신청 열기/닫기 ── */
     let isRegOpen = true;
-
-    db.collection('meta').doc('settings').onSnapshot(doc => {
-      isRegOpen = doc.exists ? doc.data().isOpen !== false : true;
-      const statusEl = document.getElementById('reg-status');
-      const btnEl    = document.getElementById('reg-toggle-btn');
-      if (isRegOpen) {
-        statusEl.textContent = '🟢 수강신청 열림';
-        statusEl.className   = 'reg-status open';
-        btnEl.textContent    = '수강신청 닫기';
-        btnEl.className      = 'reg-toggle-btn do-close';
-      } else {
-        statusEl.textContent = '🔴 수강신청 닫힘';
-        statusEl.className   = 'reg-status closed';
-        btnEl.textContent    = '수강신청 열기';
-        btnEl.className      = 'reg-toggle-btn do-open';
-      }
-    });
 
     async function toggleRegistration() {
       try {
@@ -633,6 +757,52 @@
     document.getElementById('modal-overlay').addEventListener('click', function(e) {
       if (e.target === this) closeModal();
     });
+
+    /* ── 초기화 ── */
+    async function init() {
+      try {
+        const [lecDoc, settingsDoc] = await Promise.all([
+          db.collection('meta').doc('lectures').get(),
+          db.collection('meta').doc('settings').get()
+        ]);
+        if (lecDoc.exists && lecDoc.data().list) {
+          lectureConfig = lecDoc.data().list;
+          LECTURES = lectureConfig.map(l => l.name);
+          ROOMS    = Object.fromEntries(lectureConfig.map(l => [l.name, l.room]));
+          selLec   = LECTURES[0];
+        }
+        isRegOpen = settingsDoc.exists ? settingsDoc.data().isOpen !== false : true;
+      } catch (e) { console.error(e); }
+
+      renderSettings();
+
+      db.collection('registrations').onSnapshot(snap => {
+        allRegs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderOverview();
+        renderStudents();
+        renderLec();
+      });
+
+      db.collection('meta').doc('settings').onSnapshot(doc => {
+        isRegOpen = doc.exists ? doc.data().isOpen !== false : true;
+        const statusEl = document.getElementById('reg-status');
+        const btnEl    = document.getElementById('reg-toggle-btn');
+        if (isRegOpen) {
+          statusEl.textContent = '🟢 수강신청 열림';
+          statusEl.className   = 'reg-status open';
+          btnEl.textContent    = '수강신청 닫기';
+          btnEl.className      = 'reg-toggle-btn do-close';
+        } else {
+          statusEl.textContent = '🔴 수강신청 닫힘';
+          statusEl.className   = 'reg-status closed';
+          btnEl.textContent    = '수강신청 열기';
+          btnEl.className      = 'reg-toggle-btn do-open';
+        }
+        updateSettingsLock();
+      });
+    }
+
+    init();
   </script>
 </body>
 </html>

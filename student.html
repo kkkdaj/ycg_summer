@@ -224,8 +224,18 @@
     });
     const db = firebase.firestore();
 
-    const LECTURES = ['모델링팩', '레고 피규어 만들기', '도미노', '전지 그림', '슬라임', '덤벼라 중성마녀', '과자집 만들기'];
-    const MAX = 3;
+    const DEFAULT_CONFIG = [
+      { name: '모델링팩',          room: 'CL101',         max: 3 },
+      { name: '레고 피규어 만들기', room: 'CL102',         max: 3 },
+      { name: '도미노',            room: '탁구대, 당구대', max: 3 },
+      { name: '전지 그림',         room: 'CL103',         max: 3 },
+      { name: '슬라임',            room: 'CL105',         max: 3 },
+      { name: '덤벼라 중성마녀',    room: '예배당',         max: 3 },
+      { name: '과자집 만들기',      room: 'CL106',         max: 3 }
+    ];
+    let lectureConfig = [...DEFAULT_CONFIG];
+    let LECTURES = lectureConfig.map(l => l.name);
+    function getLecMax(name) { return (lectureConfig.find(l => l.name === name) || {}).max || 3; }
 
     // sel: 화면에서 선택된 것 / saved: Firebase에 실제 저장된 것
     let sel1 = null, sel2 = null;
@@ -260,7 +270,8 @@
         const count      = counts[pKey][lec] || 0;
         const isSelected = lec === selected;
         const isSaved    = lec === saved;
-        const isFull     = count >= MAX && !isSelected;
+        const lecMax     = getLecMax(lec);
+        const isFull     = count >= lecMax && !isSelected;
         const isBlocked  = lec === savedOther;
 
         let cls = 'lecture-card';
@@ -270,8 +281,8 @@
         else if (isBlocked)  cls += ' blocked';
 
         let countCls = 'lec-count';
-        if (count >= MAX) countCls += ' over';
-        else if (count >= MAX - 3) countCls += ' warn';
+        if (count >= lecMax) countCls += ' over';
+        else if (count >= lecMax - 1) countCls += ' warn';
 
         const canClick = !isFull && !isBlocked;
         const onclick  = canClick ? `selectLec(${period}, '${lec.replace(/'/g, "\\'")}')` : '';
@@ -285,7 +296,7 @@
         return `
           <div class="${cls}" onclick="${onclick}">
             <div class="lec-name">${lec}</div>
-            <div class="${countCls}">${count} / ${MAX}명</div>
+            <div class="${countCls}">${count} / ${lecMax}명</div>
             ${tag}
           </div>`;
       }).join('');
@@ -372,7 +383,8 @@
           const currentCount   = ((cntData[pKey] || {})[sel]) || 0;
           const countWithoutMe = prevSel === sel ? currentCount - 1 : currentCount;
 
-          if (countWithoutMe >= MAX) throw new Error('FULL');
+          const lecMax = getLecMax(sel);
+          if (countWithoutMe >= lecMax) throw new Error('FULL');
 
           const newCnts = cntDoc.exists ? { ...cntDoc.data() } : {};
           if (!newCnts[pKey]) newCnts[pKey] = {};
@@ -431,13 +443,25 @@
       });
     }
 
-    db.collection('meta').doc('settings').get().then(doc => {
-      const isOpen = doc.exists ? doc.data().isOpen !== false : true;
-      if (!isOpen) window.location.href = 'index.html';
-    });
+    async function init() {
+      try {
+        const lecDoc = await db.collection('meta').doc('lectures').get();
+        if (lecDoc.exists && lecDoc.data().list) {
+          lectureConfig = lecDoc.data().list;
+          LECTURES = lectureConfig.map(l => l.name);
+          counts = { p1: {}, p2: {} };
+          LECTURES.forEach(l => { counts.p1[l] = 0; counts.p2[l] = 0; });
+        }
+        const settingsDoc = await db.collection('meta').doc('settings').get();
+        const isOpen = settingsDoc.exists ? settingsDoc.data().isOpen !== false : true;
+        if (!isOpen) { window.location.href = 'index.html'; return; }
+      } catch (e) { console.error(e); }
+      renderAll();
+      await loadMine();
+      listenCounts();
+    }
 
-    renderAll();
-    loadMine().then(listenCounts);
+    init();
   </script>
 </body>
 </html>
