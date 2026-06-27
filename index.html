@@ -107,6 +107,14 @@
     .btn:active { transform: scale(0.98); }
     .btn:disabled { background: #ddd; color: #999; border-color: #ddd; cursor: default; font-size: 13px; }
     .btn:disabled:hover { opacity: 1; }
+    .manual-link {
+      display: block; text-align: center;
+      margin-top: 18px; padding: 11px;
+      border: 2px solid #eee; border-radius: 12px;
+      color: #999; font-size: 13px; font-weight: 700;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .manual-link:hover { border-color: #FF4444; color: #FF4444; background: #fff5f5; }
     .btn-outline {
       background: #FFD94A;
       color: #1A1A1A;
@@ -168,6 +176,8 @@
       <button class="btn" onclick="adminLogin()">관리자 입장</button>
       <p class="error" id="admin-error"></p>
     </div>
+
+    <a href="manual.html" class="manual-link">📋 수강신청 사용 설명서 보기</a>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
